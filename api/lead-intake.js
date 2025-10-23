@@ -78,3 +78,29 @@ module.exports = async (req, res) => {
 
   res.status(200).json({ ok: true });
 };
+// Normalize incoming payload (support old and new keys)
+const normalize = (d = {}) => ({
+  contact_name: d.contact_name ?? d.name ?? "",
+  organization: d.organization ?? d.org ?? "",
+  email:        d.email ?? "",
+  phone:        d.phone ?? "",
+  sock_type:    d.sock_type ?? d.style ?? "",
+  quantity:     d.quantity ?? d.qty ?? "",
+  sizes:        d.sizes ?? "",
+  due_date:     d.due_date ?? d.due ?? "",
+  colors_allowed: d.colors_allowed ?? d.colorsAllowed ?? ( (d.style||"").toLowerCase()==="dress" ? 6 : 5 ),
+  colors_requested: d.colors_requested ?? d.colors ?? [],
+  brand_hex:    d.brand_hex ?? d.hex ?? [],
+  artwork:      d.artwork ?? "",
+  shipping_address: d.shipping_address ?? "", // ignored in your flow
+  rush:         d.rush ?? false,               // ignored in your flow
+  notes:        d.notes ?? ""
+});
+
+module.exports = async (req, res) => {
+  if (req.method !== "POST") return res.status(405).send("Only POST allowed");
+  const raw = typeof req.body === "string" ? JSON.parse(req.body||"{}") : (req.body||{});
+  const data = normalize(raw);
+
+  // ... keep your email sending code, use `data` below ...
+};
