@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Send to Spirit Sox</title>
+<style>
+  body{font-family:Inter,Arial,sans-serif;background:#f6f7f9;margin:0;padding:24px}
+  .card{max-width:720px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.06);padding:24px}
+  h1{margin:0 0 12px;font-size:22px}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:8px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}
+  .actions{display:flex;gap:12px;margin-top:20px}
+  button{padding:12px 18px;border-radius:12px;border:0;cursor:pointer}
+  .primary{background:#0B8F3E;color:#fff}
+  .muted{background:#eef0f2}
+  pre{background:#f7f7f7;padding:12px;border-radius:8px;overflow:auto}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Review your Spirit Sox order</h1>
+  <p>Please make sure everything looks right, then click <b>Send to Spirit Sox</b>.</p>
+  <div id="summary"></div>
+  <div class="actions">
+    <button class="primary" id="sendBtn">Send to Spirit Sox</button>
+    <button class="muted" onclick="history.back()">Go back</button>
+  </div>
+  <p id="status"></p>
+</div>
+<script>
+  // payload comes as base64url in ?p=
+  function b64urlDecode(s){s=s.replace(/-/g,'+').replace(/_/g,'/');return atob(s.padEnd(s.length+ (4-(s.length%4))%4,'='));}
+  const params=new URLSearchParams(location.search);
+  let data={};
+  try{
+    const raw=params.get('p');
+    if(raw){ data=JSON.parse(b64urlDecode(raw)); }
+  }catch(e){ console.error(e); }
+
+  function row(k,v){ return `<tr><th>${k}</th><td>${Array.isArray(v)?v.join(', '):(v??'')}</td></tr>`; }
+  const map = {
+    name:"Name", org:"Organization", email:"Email", phone:"Phone",
+    style:"Sock style", qty:"Quantity", sizes:"Sizes", due:"Due date",
+    colorsAllowed:"Colors allowed", colors:"Colors", hex:"Brand HEX", artwork:"Artwork link", notes:"Notes"
+  };
+  const html = `
+    <table>${Object.entries(map).map(([k,label])=>row(label,data[k])) .join('')}</table>
+    <details style="margin-top:12px"><summary>Show technical details</summary>
+      <pre>${JSON.stringify(data,null,2)}</pre>
+    </details>`;
+  document.getElementById('summary').innerHTML = html;
+
+  document.getElementById('sendBtn').onclick = async () => {
+    const status = document.getElementById('status');
+    status.textContent = 'Sending…';
+    try{
+      const res = await fetch('/api/lead-intake', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+      });
+      if(res.ok){ status.textContent='✅ Sent! Our team will follow up shortly.'; }
+      else { const t=await res.text(); status.textContent='❌ Error: '+t; }
+    }catch(e){ status.textContent='❌ Error: '+e.message; }
+  };
+</script>
+</body>
+</html>
