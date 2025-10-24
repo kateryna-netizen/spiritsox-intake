@@ -1,10 +1,17 @@
-{
+
   "name": "spiritsox-intake",
   "version": "1.0.0",
- {
-  "private": true,
+  "description": "API endpoint for Spirit Sox GPT form submissions",
+  "main": "api/lead-intake.js",
+  "scripts": {
+    "start": "node api/lead-intake.js"
+  },
   "dependencies": {
     "nodemailer": "^6.9.8",
     "busboy": "^1.6.0"
-  }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "private": true
 }
