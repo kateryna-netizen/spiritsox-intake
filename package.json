@@ -1,9 +1,10 @@
 {
   "name": "spiritsox-intake",
   "version": "1.0.0",
+ {
   "private": true,
   "dependencies": {
-    "node-fetch": "^2.6.7",
-    "nodemailer": "^6.9.8"
+    "nodemailer": "^6.9.8",
+    "busboy": "^1.6.0"
   }
 }
