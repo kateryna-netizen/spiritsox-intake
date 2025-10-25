@@ -6,7 +6,7 @@
 //   SMTP_USER=apikey
 //   SMTP_PASS=<SENDGRID_API_KEY>
 //   MAIL_FROM="Spirit Sox Bot" <spiritsoxbot@gmail.com>
-//   MAIL_TO=orders@spiritsoxusa.com, kateryna@spiritsoxusa.com
+//   MAIL_TO= kateryna@spiritsoxusa.com
 //   HS_PORTAL_ID=48488925
 //   HS_FORM_ID=7c3af433-cb69-4c11-a1ec-be8cb1cb8338
 
