@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
     await transporter.sendMail({
       from: '"Spirit Sox" <no-reply@spiritsoxusa.com>',
-      to: ["orders@spiritsoxusa.com", "kateryna@spiritsoxusa.com"],
+      to: ["kateryna@spiritsoxusa.com"],
       subject: `New Sock Inquiry — ${data.organization}`,
       html: emailHtml,
     });
