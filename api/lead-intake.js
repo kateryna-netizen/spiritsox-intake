@@ -1,6 +1,6 @@
 // /api/lead-intake.js
 // Full endpoint: JSON + multipart, email via Nodemailer, HubSpot Form submission.
-// Works on Vercel Serverless.
+// Uses only built-in HubSpot contact properties: email, firstname, company, phone, message.
 // ----------------------------------------------------------
 
 const nodemailer = require("nodemailer");
@@ -134,11 +134,34 @@ const parseMultipart = (req) =>
     req.pipe(busboy);
   });
 
-// -------------------- HubSpot forwarding --------------------
+// -------------------- HubSpot forwarding (built-in props only) --------------------
+
+/** Build a single human-friendly message for HubSpot "message" property */
+function buildHubSpotMessage(data) {
+  const lines = [
+    `Contact: ${data.contact_name || "-"}`,
+    `Organization: ${data.organization || "-"}`,
+    `Email: ${data.email || "-"}`,
+    `Phone: ${data.phone || "-"}`,
+    `Sock type: ${data.sock_type || "-"}`,
+    `Quantity: ${data.quantity || "-"}`,
+    `Sizes: ${data.sizes || "-"}`,
+    `Due date: ${data.due_date || "-"}`,
+    `Colors allowed/requested: ${data.colors_allowed ?? "-"} / ${
+      Array.isArray(data.colors_requested) ? data.colors_requested.join(", ") : (data.colors_requested || "-")
+    }`,
+    `Brand HEX: ${
+      Array.isArray(data.brand_hex) ? data.brand_hex.join(", ") : (data.brand_hex || "-")
+    }`,
+    `Artwork/Brand link: ${data.artwork || "-"}`,
+    `Notes: ${data.notes || "-"}`
+  ];
+  return lines.join("\n");
+}
 
 /**
  * Submit to HubSpot Form Submissions API so it appears in the same form
- * as your website. Uses env HS_PORTAL_ID and HS_FORM_ID.
+ * as your website. Uses only built-in contact properties.
  */
 async function submitToHubSpotForm(data) {
   try {
@@ -148,25 +171,15 @@ async function submitToHubSpotForm(data) {
     const formId = process.env.HS_FORM_ID;
     if (!portalId || !formId) return { skipped: true, reason: "Missing HS_PORTAL_ID or HS_FORM_ID" };
 
-    // Map local fields -> HubSpot form internal names
-    // TODO: make sure your HubSpot form has these properties with matching internal names.
+    // Map to built-in Contact properties only (no form changes needed)
     const mapped = [
-      { name: "email",       value: data.email || "" },
-      { name: "firstname",   value: data.contact_name || "" },
-      { name: "company",     value: data.organization || "" },
+      { name: "email",     value: data.email || "" },        // built-in
+      { name: "firstname", value: data.contact_name || "" }, // built-in
+      { name: "company",   value: data.organization || "" }, // built-in
+      { name: "phone",     value: data.phone || "" },        // built-in
 
-      // Custom fields — change to your HubSpot internal names
-      { name: "sock_type__c",  value: data.sock_type || "" },
-      { name: "quantity__c",   value: data.quantity != null ? String(data.quantity) : "" },
-      { name: "sizes__c",      value: data.sizes || "" },
-      { name: "due_date__c",   value: data.due_date || "" },
-      { name: "colors__c",     value: Array.isArray(data.colors_requested) ? data.colors_requested.join(", ") : (data.colors_requested || "") },
-      { name: "brand_hex__c",  value: Array.isArray(data.brand_hex) ? data.brand_hex.join(", ") : (data.brand_hex || "") },
-      { name: "artwork__c",    value: data.artwork || "" },
-      { name: "notes__c",      value: data.notes || "" },
-
-      // Optional: hidden field in the HS form to tag the source
-      { name: "source",        value: "ChatGPT" }
+      // Put ALL detailed answers into the standard "message" property
+      { name: "message",   value: buildHubSpotMessage(data) }
     ];
 
     // Keep non-empty values only
@@ -178,10 +191,10 @@ async function submitToHubSpotForm(data) {
       fields,
       context: {
         pageUri: "https://www.spiritsoxusa.com/submission-form/",
-        pageName: "Spirit Sox – Custom Sock Inquiry",
-      },
-      // If your HubSpot form requires GDPR consent, uncomment and customize:
-      // legal_consent_options: {
+        pageName: "Spirit Sox – Custom Sock Inquiry"
+      }
+      // If your HubSpot form requires GDPR consent, you can add the block below.
+      // ,legal_consent_options: {
       //   consent: {
       //     consentToProcess: true,
       //     text: "I agree to allow Spirit Sox USA to store and process my personal data.",
@@ -195,7 +208,7 @@ async function submitToHubSpotForm(data) {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(body)
       }
     );
 
@@ -238,7 +251,7 @@ module.exports = async (req, res) => {
 
       data = normalize(fields);
 
-      // Collect file attachments (logo, brand_guide, etc)
+      // Collect file attachments (logo, brand_guide, etc.)
       attachments = (files || [])
         .filter((f) => f && f.buffer && f.buffer.length)
         .map((f) => ({
@@ -302,7 +315,7 @@ module.exports = async (req, res) => {
       attachments: attachments.length ? attachments : undefined,
     });
 
-    // ---------- Forward to HubSpot form (optional, controlled by HS_ENABLE) ----------
+    // ---------- Forward to HubSpot form (built-in props only) ----------
     const hubspot = await submitToHubSpotForm(data);
 
     // ---------- Respond to caller ----------
